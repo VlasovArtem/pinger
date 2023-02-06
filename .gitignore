@@ -26,3 +26,8 @@ gen
 execs
 pkg
 
+terraform/.terraform
+terraform/terraform.tfstate.d
+terraform/.terraform.lock.hcl
+terraform/terraform.tfstate
+terraform/terraform.tfvars
