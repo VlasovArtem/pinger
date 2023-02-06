@@ -27,6 +27,6 @@ func main() {
 	}
 
 	log.Fatal().
-		Err(http.ListenAndServe(":3030", router)).
+		Err(http.ListenAndServe(":80", router)).
 		Msg("HTTP Application error")
 }

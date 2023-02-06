@@ -18,6 +18,10 @@ func NewBot() *Bot {
 }
 
 func (b *Bot) Init(router *mux.Router) {
+	router.Path("/status").HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {
+		writer.WriteHeader(http.StatusOK)
+		writer.Write([]byte("ok"))
+	})
 	subrouter := router.PathPrefix("/webhook").Subrouter()
 
 	subrouter.Path("/updates").HandlerFunc(func(writer http.ResponseWriter, request *http.Request) {

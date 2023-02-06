@@ -2,7 +2,7 @@ resource "aws_security_group" "ec2_trafic" {
   name = var.security_group
   ingress {
     from_port   = 80
-    to_port     = 3030
+    to_port     = 80
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
