@@ -10,7 +10,6 @@ echo "Exporting Go variables"
 export GOROOT=/usr/local/go
 export PATH=$GOROOT/bin:$PATH
 echo "Cloning and building pinger"
-cd /usr/ec2-user
 git clone https://github.com/VlasovArtem/pinger
 cd pinger
 go build
