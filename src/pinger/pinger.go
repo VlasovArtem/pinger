@@ -16,7 +16,7 @@ type PingerStatus struct {
 }
 
 type Pinger struct {
-	currentConfig *config.Config
+	currentConfig *config.PingerConfig
 	processor     Processor
 	starter       Executor
 	pingProvider  PingProvider
@@ -24,8 +24,12 @@ type Pinger struct {
 }
 
 func NewPinger(processor Processor, provider PingProvider) *Pinger {
+	return NewPingerWithConfig(processor.GetDefaultConfig(), processor, provider)
+}
+
+func NewPingerWithConfig(currentConfig *config.PingerConfig, processor Processor, provider PingProvider) *Pinger {
 	return &Pinger{
-		currentConfig: processor.GetDefaultConfig(),
+		currentConfig: currentConfig,
 		processor:     processor,
 		pingProvider:  provider,
 		starter:       NewStarter(),
@@ -33,7 +37,7 @@ func NewPinger(processor Processor, provider PingProvider) *Pinger {
 	}
 }
 
-func (p *Pinger) GetCurrentConfig() config.Config {
+func (p *Pinger) GetCurrentConfig() config.PingerConfig {
 	return *p.currentConfig
 }
 
@@ -120,7 +124,7 @@ func (p *Pinger) Start() (any, error) {
 	} else {
 		response := struct {
 			message       string
-			currentConfig config.Config
+			currentConfig config.PingerConfig
 		}{
 			message:       "Pinger started",
 			currentConfig: *p.currentConfig,
@@ -136,18 +140,18 @@ func (p *Pinger) Start() (any, error) {
 	}
 }
 
-func validateCurrentConfig(currentConfig *config.Config) error {
+func validateCurrentConfig(currentConfig *config.PingerConfig) error {
 	if len(currentConfig.GetIps()) <= 0 {
 		return errors.New("ips are not exists")
 	}
 	return nil
 }
 
-func (p *Pinger) getCurrentConfig() config.Config {
+func (p *Pinger) getCurrentConfig() config.PingerConfig {
 	return *p.currentConfig
 }
 
-func (p *Pinger) runPing(runConfig config.Config) bool {
+func (p *Pinger) runPing(runConfig config.PingerConfig) bool {
 	for _, ip := range runConfig.GetIps() {
 		err := p.pingProvider.Ping(ip)
 		if err != nil {

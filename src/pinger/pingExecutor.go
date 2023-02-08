@@ -8,15 +8,15 @@ import (
 )
 
 type PingInfo struct {
-	Config   config.Config
+	Config   config.PingerConfig
 	Result   bool
 	PingTime time.Time
 }
 
 type Executor interface {
 	Start(
-		configProvider func() config.Config,
-		pingFunc func(runConfig config.Config) bool,
+		configProvider func() config.PingerConfig,
+		pingFunc func(runConfig config.PingerConfig) bool,
 		runResultFunc func(info PingInfo),
 	)
 	Stop()
@@ -36,8 +36,8 @@ func NewStarter() Executor {
 }
 
 func (s *ExecutorImpl) Start(
-	configProvider func() config.Config,
-	pingFunc func(runConfig config.Config) bool,
+	configProvider func() config.PingerConfig,
+	pingFunc func(runConfig config.PingerConfig) bool,
 	runResultFunc func(info PingInfo),
 ) {
 	if !s.activationFlag.Load() {
