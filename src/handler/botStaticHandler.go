@@ -3,7 +3,7 @@ package handler
 import "github.com/VlasovArtem/pinger/src/pinger"
 
 type AddChatRequest struct {
-	ChatId         int64                `json:"chat_id" binding:"required"`
+	ChatId         int64                `json:"chat_id" binding:"required,ne=0"`
 	AutomaticStart bool                 `json:"automatic_start"`
 	Config         *PingerConfigRequest `json:"config" binding:"required"`
 }

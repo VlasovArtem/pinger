@@ -83,29 +83,15 @@ func (b *botStaticService) AddChat(request handler.AddChatRequest) (*handler.Add
 }
 
 func (b *botStaticService) validateAddChatRequest(request handler.AddChatRequest) *handler.ErrorResponse {
-	errorResponse := b.validateNumberOfChats()
-	if errorResponse != nil {
-		return errorResponse
-	}
-	if request.ChatId == 0 {
-		return handler.NewBadRequestErrorResponse("ChatId is not set")
+	if len(b.pingers) >= b.config.MaxNumberOfChats {
+		return handler.NewForbiddenErrorResponse(fmt.Sprintf("Max number of chats [%d] exceeded", b.config.MaxNumberOfChats))
 	}
 	if b.pingers[request.ChatId] != nil {
 		return handler.NewForbiddenErrorResponse("Chat already exists")
 	}
-	if request.Config == nil {
-		return handler.NewBadRequestErrorResponse("Config is not set")
-	}
 	err := b.validateChatId(request.ChatId)
 	if err != nil {
 		return handler.NewBadRequestErrorResponse(err.Error())
-	}
-	return nil
-}
-
-func (b *botStaticService) validateNumberOfChats() *handler.ErrorResponse {
-	if len(b.pingers) >= b.config.MaxNumberOfChats {
-		return handler.NewForbiddenErrorResponse(fmt.Sprintf("Max number of chats [%d] exceeded", b.config.MaxNumberOfChats))
 	}
 	return nil
 }
