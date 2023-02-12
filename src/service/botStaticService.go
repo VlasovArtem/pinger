@@ -1,0 +1,254 @@
+package service
+
+import (
+	"fmt"
+	"github.com/VlasovArtem/pinger/src/bot"
+	"github.com/VlasovArtem/pinger/src/config"
+	"github.com/VlasovArtem/pinger/src/handler"
+	"github.com/VlasovArtem/pinger/src/pinger/bot/static"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
+	"strings"
+)
+
+type BotStaticService interface {
+	AddChat(request handler.AddChatRequest) (*handler.AddChatResponse, *handler.ErrorResponse)
+	StartChat(chatId int64) *handler.ErrorResponse
+	StopChat(chatId int64) *handler.ErrorResponse
+	GetAllChats() []handler.GetChatDetailsResponse
+	GetChatDetails(chatId int64) (*handler.GetChatDetailsResponse, *handler.ErrorResponse)
+	DeleteChat(chatId int64) *handler.ErrorResponse
+	UpdateChat(chatId int64, request handler.UpdateChatRequest) (*handler.UpdateChatResponse, *handler.ErrorResponse)
+	ValidateToken(token string) *handler.ErrorResponse
+}
+
+func NewBotStaticService(staticConfig *config.BotStaticConfig) BotStaticService {
+	return &botStaticService{
+		pingers:     map[int64]*static.BotStaticPinger{},
+		telegramBot: bot.NewTelegramBot(staticConfig.Bot),
+		config:      staticConfig,
+	}
+}
+
+type botStaticService struct {
+	pingers     map[int64]*static.BotStaticPinger
+	telegramBot *bot.TelegramBot
+	config      *config.BotStaticConfig
+}
+
+func (b *botStaticService) AddChat(request handler.AddChatRequest) (*handler.AddChatResponse, *handler.ErrorResponse) {
+	if len(b.pingers) >= b.config.MaxNumberOfChats {
+		return nil, handler.NewForbiddenErrorResponse(fmt.Sprintf("Max number of chats [%d] exceeded", b.config.MaxNumberOfChats))
+	}
+	if request.ChatId == 0 {
+		return nil, handler.NewBadRequestErrorResponse("ChatId is not set")
+	}
+	if b.pingers[request.ChatId] != nil {
+		return nil, handler.NewForbiddenErrorResponse("Chat already exists")
+	}
+	if request.Config == nil {
+		return nil, handler.NewBadRequestErrorResponse("Config is not set")
+	}
+	err := b.validateChatId(request.ChatId)
+	if err != nil {
+		return nil, handler.NewBadRequestErrorResponse(err.Error())
+	}
+
+	pingerConfig, err := convertConfigRequestToConfig(*request.Config)
+	if err != nil {
+		return nil, handler.NewBadRequestErrorResponse(err.Error())
+	}
+
+	chatTelegramBot := bot.NewChatTelegramBot(
+		b.telegramBot,
+		config.Chat{
+			ChatId: request.ChatId,
+		},
+	)
+	pinger := static.NewBotStaticPinger(pingerConfig,
+		chatTelegramBot)
+	log.Debug().Msgf("Pinger for the chat has been created [chatId: %d]", request.ChatId)
+	b.pingers[request.ChatId] = pinger
+
+	if request.AutomaticStart {
+		_, err := pinger.Start()
+		if err != nil {
+			return nil, handler.NewForbiddenErrorResponse(err.Error())
+		}
+		log.Debug().Msgf("Pinger for the chat has been started [chatId: %d]", request.ChatId)
+		return &handler.AddChatResponse{
+			Status:  "OK",
+			Details: fmt.Sprintf("Pinger for the chat has been created and started [chatId: %d]", request.ChatId),
+		}, nil
+	}
+	sendWelcomeMessage(chatTelegramBot, pingerConfig)
+	return &handler.AddChatResponse{
+		Status:  "OK",
+		Details: fmt.Sprintf("Pinger for the chat has been created [chatId: %d]", request.ChatId),
+	}, nil
+}
+
+func (b *botStaticService) StartChat(chatId int64) *handler.ErrorResponse {
+	pinger := b.pingers[chatId]
+	if pinger == nil {
+		return handler.NewNotFoundErrorResponse("Pinger not found")
+	}
+	_, err := pinger.Start()
+	if err != nil {
+		return handler.NewForbiddenErrorResponse(err.Error())
+	}
+	return nil
+}
+
+func (b *botStaticService) StopChat(chatId int64) *handler.ErrorResponse {
+	pinger := b.pingers[chatId]
+	if pinger == nil {
+		return handler.NewNotFoundErrorResponse("Pinger not found")
+	}
+	pinger.Stop()
+	return nil
+}
+
+func (b *botStaticService) GetAllChats() []handler.GetChatDetailsResponse {
+	var chats []handler.GetChatDetailsResponse
+	for chatId, pinger := range b.pingers {
+		chats = append(chats, toChatDetails(chatId, pinger))
+	}
+	if chats == nil {
+		return []handler.GetChatDetailsResponse{}
+	} else {
+		return chats
+	}
+}
+
+func (b *botStaticService) GetChatDetails(chatId int64) (*handler.GetChatDetailsResponse, *handler.ErrorResponse) {
+	pinger := b.pingers[chatId]
+	if pinger == nil {
+		return nil, handler.NewNotFoundErrorResponse("Pinger not found")
+	}
+	details := toChatDetails(chatId, pinger)
+	return &details, nil
+}
+
+func (b *botStaticService) DeleteChat(chatId int64) *handler.ErrorResponse {
+	pinger := b.pingers[chatId]
+	if pinger == nil {
+		return handler.NewNotFoundErrorResponse("Pinger not found")
+	}
+	errorResponse := b.StopChat(chatId)
+	if errorResponse != nil {
+		return errorResponse
+	}
+	delete(b.pingers, chatId)
+	return nil
+}
+
+func (b *botStaticService) UpdateChat(chatId int64, request handler.UpdateChatRequest) (*handler.UpdateChatResponse, *handler.ErrorResponse) {
+	errorResponse := b.StopChat(chatId)
+	if errorResponse != nil {
+		return nil, errorResponse
+	}
+
+	response, errorResponse := b.AddChat(handler.AddChatRequest{
+		ChatId:         chatId,
+		Config:         request.Config,
+		AutomaticStart: request.AutomaticStart,
+	})
+	if errorResponse != nil {
+		return nil, errorResponse
+	}
+	return &handler.UpdateChatResponse{
+		Status:  response.Status,
+		Details: response.Details,
+	}, nil
+}
+
+func (b *botStaticService) ValidateToken(token string) *handler.ErrorResponse {
+	if token != b.config.Token {
+		return handler.NewForbiddenErrorResponse("Invalid token")
+	}
+	return nil
+}
+
+func (b *botStaticService) validateChatId(id int64) error {
+	chatInfo, err := b.telegramBot.GetChat(
+		tgbotapi.ChatInfoConfig{
+			ChatConfig: tgbotapi.ChatConfig{
+				ChatID: id,
+			},
+		})
+
+	if err != nil {
+		return err
+	}
+	if chatInfo.Permissions.CanSendMessages == false {
+		return errors.New("Bot has no permissions to send messages to the chat")
+	}
+	return nil
+}
+
+func convertConfigRequestToConfig(configRequest handler.PingerConfigRequest) (*config.PingerConfig, error) {
+	err := validate(configRequest)
+	if err != nil {
+		return nil, err
+	}
+
+	return toPingerConfig(format(configRequest)), nil
+}
+
+func toChatDetails(chatId int64, pinger *static.BotStaticPinger) handler.GetChatDetailsResponse {
+	currentConfig := pinger.GetCurrentConfig()
+
+	return handler.GetChatDetailsResponse{
+		ChatId: chatId,
+		Config: handler.PingerConfigResponse{
+			Ips:       currentConfig.Ips,
+			Consensus: string(currentConfig.Consensus),
+			Timeout:   currentConfig.Timeout.String(),
+		},
+		State: pinger.CurrentStatus(),
+	}
+}
+
+func toPingerConfig(configRequest handler.PingerConfigRequest) *config.PingerConfig {
+	pingerConfig := config.PingerConfig{
+		Ips:       configRequest.Ips,
+		Consensus: config.Consensus(configRequest.Consensus),
+	}
+	pingerConfig.SetTimeout(configRequest.Timeout.Value, config.TimeoutType(configRequest.Timeout.Type))
+	return &pingerConfig
+}
+
+func format(configRequest handler.PingerConfigRequest) handler.PingerConfigRequest {
+	configRequest.Consensus = strings.ToLower(configRequest.Consensus)
+	configRequest.Timeout.Type = strings.ToLower(configRequest.Timeout.Type)
+	return configRequest
+}
+
+func validate(configRequest handler.PingerConfigRequest) error {
+	if configRequest.Timeout.Value <= 0 {
+		return errors.New("Timeout value must be positive")
+	}
+	consensus := config.Consensus(configRequest.Consensus)
+	if consensus != config.ALL && consensus != config.ANY {
+		return errors.New("Consensus must be 'all' or 'any'")
+	}
+	timeoutType := config.TimeoutType(configRequest.Timeout.Type)
+	if timeoutType != config.SECONDS && timeoutType != config.MINUTES {
+		return errors.New("Timeout type must be 'seconds' or 'minutes'")
+	}
+	if len(configRequest.Ips) == 0 {
+		return errors.New("Ips can't be empty")
+	}
+	return nil
+}
+
+func sendWelcomeMessage(telegramBot *bot.ChatTelegramBot, pingerConfig *config.PingerConfig) {
+	message := fmt.Sprintf("Light Buzzer Started.\nWe will inform when %s ips [%s] will be unreachable.\nWe will check reachability within the interval %s",
+		pingerConfig.Consensus,
+		strings.Join(pingerConfig.Ips, ", "),
+		pingerConfig.Timeout.String(),
+	)
+	_, _ = telegramBot.SendMessage(message)
+}

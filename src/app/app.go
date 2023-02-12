@@ -2,6 +2,8 @@ package app
 
 import (
 	"errors"
+	"github.com/gin-gonic/gin"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
 )
 
@@ -34,4 +36,16 @@ type ApplicationOpts struct {
 
 type BotStaticOpts struct {
 	File string
+}
+
+func PrintApi(router *gin.Engine) {
+	for i, info := range router.Routes() {
+		log.Info().Msgf("%d) %s %s", i, info.Method, info.Path)
+	}
+}
+
+func StartRouter(router *gin.Engine) {
+	log.Fatal().
+		Err(router.Run(":3030")).
+		Msg("HTTP Application error")
 }
