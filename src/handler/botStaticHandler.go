@@ -3,18 +3,18 @@ package handler
 import "github.com/VlasovArtem/pinger/src/pinger"
 
 type AddChatRequest struct {
-	ChatId         int64                `json:"chat_id"`
+	ChatId         int64                `json:"chat_id" binding:"required"`
 	AutomaticStart bool                 `json:"automatic_start"`
-	Config         *PingerConfigRequest `json:"config"`
+	Config         *PingerConfigRequest `json:"config" binding:"required"`
 }
 
 type PingerConfigRequest struct {
-	Ips       []string
-	Consensus string
+	Ips       []string `json:"ips" binding:"required,len=1"`
+	Consensus string   `json:"consensus" binding:"required,oneof=all any"`
 	Timeout   struct {
-		Value int64
-		Type  string
-	}
+		Value int64  `json:"value" binding:"required,gte=1"`
+		Type  string `json:"type" binding:"required,oneof=seconds minutes"`
+	} `json:"timeout" binding:"required"`
 }
 
 type AddChatResponse struct {
@@ -29,14 +29,14 @@ type GetChatDetailsResponse struct {
 }
 
 type PingerConfigResponse struct {
-	Ips       []string
-	Consensus string
-	Timeout   string
+	Ips       []string `json:"ips"`
+	Consensus string   `json:"consensus"`
+	Timeout   string   `json:"timeout"`
 }
 
 type UpdateChatRequest struct {
 	AutomaticStart bool                 `json:"automatic_start"`
-	Config         *PingerConfigRequest `json:"config"`
+	Config         *PingerConfigRequest `json:"config" binding:"required"`
 }
 
 type UpdateChatResponse struct {

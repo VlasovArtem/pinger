@@ -38,21 +38,11 @@ type botStaticService struct {
 }
 
 func (b *botStaticService) AddChat(request handler.AddChatRequest) (*handler.AddChatResponse, *handler.ErrorResponse) {
-	if len(b.pingers) >= b.config.MaxNumberOfChats {
-		return nil, handler.NewForbiddenErrorResponse(fmt.Sprintf("Max number of chats [%d] exceeded", b.config.MaxNumberOfChats))
-	}
-	if request.ChatId == 0 {
-		return nil, handler.NewBadRequestErrorResponse("ChatId is not set")
-	}
-	if b.pingers[request.ChatId] != nil {
-		return nil, handler.NewForbiddenErrorResponse("Chat already exists")
-	}
-	if request.Config == nil {
-		return nil, handler.NewBadRequestErrorResponse("Config is not set")
-	}
-	err := b.validateChatId(request.ChatId)
-	if err != nil {
-		return nil, handler.NewBadRequestErrorResponse(err.Error())
+	log.Debug().Msgf("AddChat request: %+v", request)
+
+	errorResponse := b.validateAddChatRequest(request)
+	if errorResponse != nil {
+		return nil, errorResponse
 	}
 
 	pingerConfig, err := convertConfigRequestToConfig(*request.Config)
@@ -82,11 +72,42 @@ func (b *botStaticService) AddChat(request handler.AddChatRequest) (*handler.Add
 			Details: fmt.Sprintf("Pinger for the chat has been created and started [chatId: %d]", request.ChatId),
 		}, nil
 	}
-	sendWelcomeMessage(chatTelegramBot, pingerConfig)
+	err = sendWelcomeMessage(chatTelegramBot, pingerConfig)
+	if err != nil {
+		return nil, handler.NewForbiddenErrorResponse(err.Error())
+	}
 	return &handler.AddChatResponse{
 		Status:  "OK",
-		Details: fmt.Sprintf("Pinger for the chat has been created [chatId: %d]", request.ChatId),
+		Details: fmt.Sprintf("Pinger for the chat has been created, but not started [chatId: %d]", request.ChatId),
 	}, nil
+}
+
+func (b *botStaticService) validateAddChatRequest(request handler.AddChatRequest) *handler.ErrorResponse {
+	errorResponse := b.validateNumberOfChats()
+	if errorResponse != nil {
+		return errorResponse
+	}
+	if request.ChatId == 0 {
+		return handler.NewBadRequestErrorResponse("ChatId is not set")
+	}
+	if b.pingers[request.ChatId] != nil {
+		return handler.NewForbiddenErrorResponse("Chat already exists")
+	}
+	if request.Config == nil {
+		return handler.NewBadRequestErrorResponse("Config is not set")
+	}
+	err := b.validateChatId(request.ChatId)
+	if err != nil {
+		return handler.NewBadRequestErrorResponse(err.Error())
+	}
+	return nil
+}
+
+func (b *botStaticService) validateNumberOfChats() *handler.ErrorResponse {
+	if len(b.pingers) >= b.config.MaxNumberOfChats {
+		return handler.NewForbiddenErrorResponse(fmt.Sprintf("Max number of chats [%d] exceeded", b.config.MaxNumberOfChats))
+	}
+	return nil
 }
 
 func (b *botStaticService) StartChat(chatId int64) *handler.ErrorResponse {
@@ -172,6 +193,7 @@ func (b *botStaticService) ValidateToken(token string) *handler.ErrorResponse {
 }
 
 func (b *botStaticService) validateChatId(id int64) error {
+	log.Debug().Msgf("Validating chat id [%d]", id)
 	chatInfo, err := b.telegramBot.GetChat(
 		tgbotapi.ChatInfoConfig{
 			ChatConfig: tgbotapi.ChatConfig{
@@ -189,6 +211,7 @@ func (b *botStaticService) validateChatId(id int64) error {
 }
 
 func convertConfigRequestToConfig(configRequest handler.PingerConfigRequest) (*config.PingerConfig, error) {
+	log.Debug().Msgf("Converting config request to config [%v]", configRequest)
 	err := validate(configRequest)
 	if err != nil {
 		return nil, err
@@ -217,12 +240,14 @@ func toPingerConfig(configRequest handler.PingerConfigRequest) *config.PingerCon
 		Consensus: config.Consensus(configRequest.Consensus),
 	}
 	pingerConfig.SetTimeout(configRequest.Timeout.Value, config.TimeoutType(configRequest.Timeout.Type))
+	log.Debug().Msgf("Converted config request to config [%v]", pingerConfig)
 	return &pingerConfig
 }
 
 func format(configRequest handler.PingerConfigRequest) handler.PingerConfigRequest {
 	configRequest.Consensus = strings.ToLower(configRequest.Consensus)
 	configRequest.Timeout.Type = strings.ToLower(configRequest.Timeout.Type)
+	log.Debug().Msgf("Formatted config request [%v]", configRequest)
 	return configRequest
 }
 
@@ -244,11 +269,16 @@ func validate(configRequest handler.PingerConfigRequest) error {
 	return nil
 }
 
-func sendWelcomeMessage(telegramBot *bot.ChatTelegramBot, pingerConfig *config.PingerConfig) {
+func sendWelcomeMessage(telegramBot *bot.ChatTelegramBot, pingerConfig *config.PingerConfig) error {
+	log.Debug().Msg("Sending welcome message")
 	message := fmt.Sprintf("Light Buzzer Started.\nWe will inform when %s ips [%s] will be unreachable.\nWe will check reachability within the interval %s",
 		pingerConfig.Consensus,
 		strings.Join(pingerConfig.Ips, ", "),
 		pingerConfig.Timeout.String(),
 	)
-	_, _ = telegramBot.SendMessage(message)
+	_, err := telegramBot.SendMessage(message)
+	if err != nil {
+		return errors.New("Error while sending welcome message")
+	}
+	return nil
 }
