@@ -3,9 +3,9 @@ package app
 import (
 	"errors"
 	"github.com/gin-gonic/gin"
+	"github.com/jessevdk/go-flags"
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
-	"github.com/spf13/pflag"
 	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
 )
@@ -16,7 +16,10 @@ type Application interface {
 }
 
 func CreateApplication() (Application, error) {
-	opts := readOpts()
+	opts, err := readOpts()
+	if err != nil {
+		return nil, err
+	}
 
 	switch opts.ApplicationType {
 	case "bot.static":
@@ -25,34 +28,31 @@ func CreateApplication() (Application, error) {
 	return nil, errors.New("no matching application found for type " + opts.ApplicationType)
 }
 
-func readOpts() ApplicationOpts {
+func readOpts() (ApplicationOpts, error) {
 	opts := ApplicationOpts{}
-	pflag.StringVar(&opts.BotStatic.File, "bot.static.file", "", "File with bot static config")
-	pflag.StringVar(&opts.ApplicationType, "app.type", "", "Application type")
-	pflag.StringVar(&opts.Logger.File, "logger.file", "", "File for logger")
-	pflag.StringVar(&opts.Logger.Level, "logger.level", "", "Level for logger")
-	pflag.StringVar(&opts.Api.Port, "api.port", "", "Port for api")
-	pflag.Parse()
-	return opts
+
+	_, err := flags.Parse(&opts)
+	if err != nil {
+		return ApplicationOpts{}, err
+	}
+	return opts, nil
 }
 
 type ApplicationOpts struct {
-	ApplicationType string
-	Api             ApiOpts
-	Logger          Logger
-	BotStatic       BotStaticOpts
-}
-type Logger struct {
-	File  string
-	Level string
-}
+	ApplicationType string `short:"t" long:"type" description:"Application type" env:"TYPE" required:"true" choice:"bot.static"`
 
-type BotStaticOpts struct {
-	File string
-}
+	Api struct {
+		Port string `long:"port" description:"Port for api" default:"3030" env:"PORT"`
+	} `group:"api" namespace:"api" env-namespace:"API"`
 
-type ApiOpts struct {
-	Port string
+	Logger struct {
+		File  string `long:"file" description:"File for logger" env:"FILE"`
+		Level string `long:"level" description:"Level for logger" env:"LEVEL" choice:"debug" choice:"info" choice:"warn" choice:"error" choice:"fatal" default:"info"`
+	} `group:"logger" namespace:"logger" env-namespace:"LOGGER"`
+
+	BotStatic struct {
+		File string `long:"file" description:"File with bot static config" env:"FILE"`
+	} `group:"bot.static" namespace:"bot.static" env-namespace:"BOT_STATIC"`
 }
 
 func PrintApi(router *gin.Engine) {
@@ -72,18 +72,18 @@ func StartRouter(router *gin.Engine, opts ApplicationOpts) {
 		Msg("HTTP Application error")
 }
 
-func InitLogger(logger Logger) (*os.File, error) {
-	if logger.File != "" {
+func InitLogger(opts ApplicationOpts) (*os.File, error) {
+	if opts.Logger.File != "" {
 		fileLogger := &lumberjack.Logger{
-			Filename:   logger.File,
+			Filename:   opts.Logger.File,
 			MaxSize:    1,    // megabytes
 			MaxBackups: 5,    // files
 			MaxAge:     7,    // days
 			Compress:   true, // disabled by default
 		}
 		log.Logger = zerolog.New(fileLogger).With().Timestamp().Logger()
-	} else if logger.Level != "" {
-		level, err := zerolog.ParseLevel(logger.Level)
+	} else if opts.Logger.Level != "" {
+		level, err := zerolog.ParseLevel(opts.Logger.Level)
 		if err != nil {
 			return nil, err
 		}
