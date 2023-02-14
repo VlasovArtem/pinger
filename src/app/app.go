@@ -31,16 +31,17 @@ func readOpts() ApplicationOpts {
 	pflag.StringVar(&opts.ApplicationType, "app.type", "", "Application type")
 	pflag.StringVar(&opts.Logger.File, "logger.file", "", "File for logger")
 	pflag.StringVar(&opts.Logger.Level, "logger.level", "", "Level for logger")
+	pflag.StringVar(&opts.Api.Port, "api.port", "", "Port for api")
 	pflag.Parse()
 	return opts
 }
 
 type ApplicationOpts struct {
 	ApplicationType string
+	Api             ApiOpts
 	Logger          Logger
 	BotStatic       BotStaticOpts
 }
-
 type Logger struct {
 	File  string
 	Level string
@@ -50,14 +51,18 @@ type BotStaticOpts struct {
 	File string
 }
 
+type ApiOpts struct {
+	Port string
+}
+
 func PrintApi(router *gin.Engine) {
 	for i, info := range router.Routes() {
 		log.Info().Msgf("%d) %s %s", i, info.Method, info.Path)
 	}
 }
 
-func StartRouter(router *gin.Engine) {
-	port := os.Getenv("PORT")
+func StartRouter(router *gin.Engine, opts ApplicationOpts) {
+	port := opts.Api.Port
 	if port == "" {
 		port = "3030"
 	}
