@@ -3,6 +3,8 @@ package pinger
 import (
 	"errors"
 	ping "github.com/prometheus-community/pro-bing"
+	"github.com/rs/zerolog/log"
+	"time"
 )
 
 type PingProvider interface {
@@ -17,16 +19,19 @@ func NewDefaultPingProvider() PingProvider {
 }
 
 func (d *DefaultPingProvider) Ping(address string) error {
+	log.Debug().Msgf("Pinging %s", address)
 	pinger, err := ping.NewPinger(address)
 	if err != nil {
 		return err
 	}
-	pinger.Count = 3
-	pinger.SetPrivileged(true)
+	pinger.Count = 5
+	pinger.Timeout = pinger.Interval * (time.Duration)(pinger.Count)
+	log.Debug().Msg("Pinger started")
 	err = pinger.Run()
 	if err != nil {
 		return err
 	}
+	log.Debug().Msg("Pinger stopped")
 	if statistics := pinger.Statistics(); statistics == nil {
 		return errors.New("statistics is nil")
 	} else {
