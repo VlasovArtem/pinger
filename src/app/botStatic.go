@@ -11,21 +11,23 @@ import (
 
 type botStaticApplication struct {
 	service service.BotStaticService
+	opts    ApplicationOpts
 	destroy func() error
 }
 
 func NewBotStaticApplication(opts ApplicationOpts) (Application, error) {
-	file, err := InitLogger(opts.Logger)
+	file, err := InitLogger(opts)
 	if err != nil {
 		return nil, err
 	}
-	staticConfig, err := readBotStaticConfig(opts.BotStatic)
+	staticConfig, err := readBotStaticConfig(opts)
 	if err != nil {
 		return nil, err
 	}
 
 	botPuller := &botStaticApplication{
 		service: service.NewBotStaticService(staticConfig),
+		opts:    opts,
 		destroy: func() error {
 			return file.Close()
 		},
@@ -44,18 +46,18 @@ func (b *botStaticApplication) Run() {
 
 	PrintApi(engine)
 
-	StartRouter(engine)
+	StartRouter(engine, b.opts)
 }
 
 func (b *botStaticApplication) Destroy() error {
 	return b.destroy()
 }
 
-func readBotStaticConfig(opts BotStaticOpts) (*config.BotStaticConfig, error) {
-	if opts.File == "" {
+func readBotStaticConfig(opts ApplicationOpts) (*config.BotStaticConfig, error) {
+	if opts.BotStatic.File == "" {
 		return nil, errors.New("bot static config file is not set")
 	}
-	pullerConfig, err := config.NewBotStaticConfigFromFile(opts.File)
+	pullerConfig, err := config.NewBotStaticConfigFromFile(opts.BotStatic.File)
 	if err != nil {
 		return nil, errors.Wrap(err, "bot static config file read error")
 	}
