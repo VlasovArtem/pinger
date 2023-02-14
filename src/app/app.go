@@ -81,12 +81,14 @@ func InitLogger(opts ApplicationOpts) (*os.File, error) {
 			MaxAge:     7,    // days
 			Compress:   true, // disabled by default
 		}
+		log.Debug().Msg("Logger file: " + opts.Logger.File)
 		log.Logger = zerolog.New(fileLogger).With().Timestamp().Logger()
 	} else if opts.Logger.Level != "" {
 		level, err := zerolog.ParseLevel(opts.Logger.Level)
 		if err != nil {
 			return nil, err
 		}
+		log.Debug().Msg("Logger level: " + opts.Logger.Level)
 		zerolog.SetGlobalLevel(level)
 	}
 	return nil, nil

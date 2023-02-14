@@ -23,7 +23,7 @@ func showStatus(pingers *BotPingers, pinger *BotPinger, message *tgbotapi.Messag
 	)
 }
 
-func formatStatusMessage(status pinger.PingerStatus) string {
+func formatStatusMessage(status pinger.PingerState) string {
 	return fmt.Sprintf(
 		"Bot status: %s\nLight status: %s\nTime has passed: %s",
 		formatBotStatus(status.IsRunning),

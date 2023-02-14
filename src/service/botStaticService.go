@@ -5,6 +5,7 @@ import (
 	"github.com/VlasovArtem/pinger/src/bot"
 	"github.com/VlasovArtem/pinger/src/config"
 	"github.com/VlasovArtem/pinger/src/handler"
+	"github.com/VlasovArtem/pinger/src/pinger"
 	"github.com/VlasovArtem/pinger/src/pinger/bot/static"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/pkg/errors"
@@ -114,7 +115,7 @@ func (b *botStaticService) StopChat(chatId int64) *handler.ErrorResponse {
 		return handler.NewNotFoundErrorResponse("Pinger not found")
 	}
 	pinger.Stop()
-	
+
 	return nil
 }
 
@@ -212,12 +213,37 @@ func toChatDetails(chatId int64, pinger *static.BotStaticPinger) handler.GetChat
 
 	return handler.GetChatDetailsResponse{
 		ChatId: chatId,
-		Config: handler.PingerConfigResponse{
-			Ips:       currentConfig.Ips,
-			Consensus: string(currentConfig.Consensus),
-			Timeout:   currentConfig.Timeout.String(),
-		},
-		State: pinger.CurrentStatus(),
+		Config: toPingerConfigResponse(currentConfig),
+		State:  toPingerStateResponse(pinger.CurrentState()),
+	}
+}
+
+func toPingerConfigResponse(currentConfig config.PingerConfig) handler.PingerConfigResponse {
+	return handler.PingerConfigResponse{
+		Ips:       currentConfig.Ips,
+		Consensus: string(currentConfig.Consensus),
+		Timeout:   currentConfig.Timeout.String(),
+	}
+}
+
+func toPingerStateResponse(state pinger.PingerState) handler.PingerStateResponse {
+	var pings []handler.PingInfoResponse
+
+	for _, ping := range state.Pings {
+		pings = append(pings, toPingInfoResponse(ping))
+	}
+
+	return handler.PingerStateResponse{
+		IsRunning: state.IsRunning,
+		Pings:     pings,
+	}
+}
+
+func toPingInfoResponse(info pinger.PingInfo) handler.PingInfoResponse {
+	return handler.PingInfoResponse{
+		Config:   toPingerConfigResponse(info.Config),
+		Result:   info.Result,
+		PingTime: info.PingTime,
 	}
 }
 
@@ -266,7 +292,7 @@ func sendWelcomeMessage(telegramBot *bot.ChatTelegramBot, chatId int64, pingerCo
 				Timeout: %s
 				Status: %s`
 	var status string
-	if pinger.CurrentStatus().IsRunning {
+	if pinger.CurrentState().IsRunning {
 		status = "Running"
 	} else {
 		status = "Stopped"

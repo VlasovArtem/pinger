@@ -1,6 +1,8 @@
 package handler
 
-import "github.com/VlasovArtem/pinger/src/pinger"
+import (
+	"time"
+)
 
 type AddChatRequest struct {
 	ChatId         int64                `json:"chat_id" binding:"required,ne=0"`
@@ -25,7 +27,18 @@ type AddChatResponse struct {
 type GetChatDetailsResponse struct {
 	ChatId int64                `json:"chat_id"`
 	Config PingerConfigResponse `json:"config"`
-	State  pinger.PingerStatus  `json:"state"`
+	State  PingerStateResponse  `json:"state"`
+}
+
+type PingerStateResponse struct {
+	IsRunning bool
+	Pings     []PingInfoResponse
+}
+
+type PingInfoResponse struct {
+	Config   PingerConfigResponse
+	Result   bool
+	PingTime time.Time
 }
 
 type PingerConfigResponse struct {

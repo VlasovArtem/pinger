@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-type PingerStatus struct {
+type PingerState struct {
 	IsRunning bool
 	Pings     []PingInfo
 }
@@ -200,8 +200,8 @@ func (p *Pinger) runProcessor(previousResult *PingInfo, currentResult PingInfo) 
 	}
 }
 
-func (p *Pinger) CurrentStatus() PingerStatus {
-	return PingerStatus{
+func (p *Pinger) CurrentState() PingerState {
+	return PingerState{
 		IsRunning: p.starter.Status(),
 		Pings:     p.pings,
 	}
