@@ -9,6 +9,14 @@ func main() {
 	if application, err := app.CreateApplication(); err != nil {
 		log.Fatal().Msg(err.Error())
 	} else {
+		defer func() {
+			log.Info().Msg("Destroying application")
+			err = application.Destroy()
+			if err != nil {
+				log.Fatal().Msg(err.Error())
+			}
+		}()
+
 		application.Run()
 	}
 }

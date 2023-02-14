@@ -1,4 +1,5 @@
 bot:
-    token: "${bot_token}"
+    token: "bot_token"
 maxNumberOfChats: 5
-token: "${auth_token}"
+token: "auth_token"
+logger:

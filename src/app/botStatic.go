@@ -11,16 +11,24 @@ import (
 
 type botStaticApplication struct {
 	service service.BotStaticService
+	destroy func() error
 }
 
-func NewBotStaticApplication(opts BotStaticOpts) (Application, error) {
-	staticConfig, err := readBotStaticConfig(opts)
+func NewBotStaticApplication(opts ApplicationOpts) (Application, error) {
+	file, err := InitLogger(opts.Logger)
+	if err != nil {
+		return nil, err
+	}
+	staticConfig, err := readBotStaticConfig(opts.BotStatic)
 	if err != nil {
 		return nil, err
 	}
 
 	botPuller := &botStaticApplication{
 		service: service.NewBotStaticService(staticConfig),
+		destroy: func() error {
+			return file.Close()
+		},
 	}
 	return botPuller, nil
 }
@@ -37,6 +45,10 @@ func (b *botStaticApplication) Run() {
 	PrintApi(engine)
 
 	StartRouter(engine)
+}
+
+func (b *botStaticApplication) Destroy() error {
+	return b.destroy()
 }
 
 func readBotStaticConfig(opts BotStaticOpts) (*config.BotStaticConfig, error) {

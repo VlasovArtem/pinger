@@ -114,7 +114,7 @@ func (b *botStaticService) StopChat(chatId int64) *handler.ErrorResponse {
 		return handler.NewNotFoundErrorResponse("Pinger not found")
 	}
 	pinger.Stop()
-
+	
 	return nil
 }
 
