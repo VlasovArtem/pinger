@@ -6,6 +6,7 @@ import (
 	"github.com/rs/zerolog"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
+	"gopkg.in/natefinch/lumberjack.v2"
 	"os"
 )
 
@@ -68,15 +69,14 @@ func StartRouter(router *gin.Engine) {
 
 func InitLogger(logger Logger) (*os.File, error) {
 	if logger.File != "" {
-		file, err := os.OpenFile(
-			"myapp.log",
-			os.O_APPEND|os.O_CREATE|os.O_WRONLY,
-			0664,
-		)
-		if err != nil {
-			return nil, err
+		fileLogger := &lumberjack.Logger{
+			Filename:   logger.File,
+			MaxSize:    1,    // megabytes
+			MaxBackups: 5,    // files
+			MaxAge:     7,    // days
+			Compress:   true, // disabled by default
 		}
-		log.Logger = zerolog.New(file).With().Timestamp().Logger()
+		log.Logger = zerolog.New(fileLogger).With().Timestamp().Logger()
 	} else if logger.Level != "" {
 		level, err := zerolog.ParseLevel(logger.Level)
 		if err != nil {

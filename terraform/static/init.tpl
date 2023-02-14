@@ -16,8 +16,8 @@ go build
 mv pinger /usr/local/bin/pinger
 echo "Installing Nginx"
 amazon-linux-extras install nginx1 -y
-cp /usr/ec2-user/pinger/nginx/pinger.conf /etc/nginx/conf.d/pinger.conf
+cp /home/ec2-user/pinger/nginx/pinger.conf /etc/nginx/conf.d/pinger.conf
 systemctl enable nginx && systemctl start nginx
 echo "Installing Systemctl"
-cp /usr/ec2-user/pinger/systemd/pinger.service /etc/systemd/system/pinger.service
-rm -rf /usr/ec2-user/pinger
+cp /home/ec2-user/pinger/systemd/pinger.service /etc/systemd/system/pinger.service
+rm -rf /home/ec2-user/pinger
