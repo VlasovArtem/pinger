@@ -56,8 +56,7 @@ func (b *botStaticService) AddChat(request handler.AddChatRequest) (*handler.Add
 			ChatId: request.ChatId,
 		},
 	)
-	pinger := static.NewBotStaticPinger(pingerConfig,
-		chatTelegramBot)
+	pinger := static.NewBotStaticPinger(pingerConfig, chatTelegramBot)
 	log.Debug().Msgf("Pinger for the chat has been created [chatId: %d]", request.ChatId)
 	b.pingers[request.ChatId] = pinger
 
@@ -72,7 +71,7 @@ func (b *botStaticService) AddChat(request handler.AddChatRequest) (*handler.Add
 			Details: fmt.Sprintf("Pinger for the chat has been created and started [chatId: %d]", request.ChatId),
 		}, nil
 	}
-	err = sendWelcomeMessage(chatTelegramBot, pingerConfig)
+	err = sendWelcomeMessage(chatTelegramBot, request.ChatId, pingerConfig, pinger)
 	if err != nil {
 		return nil, handler.NewForbiddenErrorResponse(err.Error())
 	}
@@ -105,6 +104,7 @@ func (b *botStaticService) StartChat(chatId int64) *handler.ErrorResponse {
 	if err != nil {
 		return handler.NewForbiddenErrorResponse(err.Error())
 	}
+
 	return nil
 }
 
@@ -114,6 +114,7 @@ func (b *botStaticService) StopChat(chatId int64) *handler.ErrorResponse {
 		return handler.NewNotFoundErrorResponse("Pinger not found")
 	}
 	pinger.Stop()
+
 	return nil
 }
 
@@ -255,12 +256,27 @@ func validate(configRequest handler.PingerConfigRequest) error {
 	return nil
 }
 
-func sendWelcomeMessage(telegramBot *bot.ChatTelegramBot, pingerConfig *config.PingerConfig) error {
+func sendWelcomeMessage(telegramBot *bot.ChatTelegramBot, chatId int64, pingerConfig *config.PingerConfig, pinger *static.BotStaticPinger) error {
 	log.Debug().Msg("Sending welcome message")
-	message := fmt.Sprintf("Light Buzzer Started.\nWe will inform when %s ips [%s] will be unreachable.\nWe will check reachability within the interval %s",
-		pingerConfig.Consensus,
+	msgTpl := `The chat added to Pinger Service app.
+				Additional information:
+				ChatId: %d
+				Ips: [%s],
+				Consensus: %s,
+				Timeout: %s
+				Status: %s`
+	var status string
+	if pinger.CurrentStatus().IsRunning {
+		status = "Running"
+	} else {
+		status = "Stopped"
+	}
+	message := fmt.Sprintf(msgTpl,
+		chatId,
 		strings.Join(pingerConfig.Ips, ", "),
-		pingerConfig.Timeout.String(),
+		pingerConfig.Consensus,
+		pingerConfig.Timeout,
+		status,
 	)
 	_, err := telegramBot.SendMessage(message)
 	if err != nil {

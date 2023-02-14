@@ -1,0 +1,10 @@
+[Unit]
+Description=Bot Pinger Static
+
+[Service]
+WorkingDirectory=/home/ec2-user/pingerd
+ExecStart=sudo /usr/local/bin/pinger --app.type=bot.static --bot.static.file=/home/ec2-user/bot-static.yml
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

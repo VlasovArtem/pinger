@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/rs/zerolog/log"
 	"github.com/spf13/pflag"
+	"os"
 )
 
 type Application interface {
@@ -45,7 +46,12 @@ func PrintApi(router *gin.Engine) {
 }
 
 func StartRouter(router *gin.Engine) {
+	port := os.Getenv("PORT")
+	if port == "" {
+		port = "3030"
+	}
+
 	log.Fatal().
-		Err(router.Run(":3030")).
+		Err(router.Run(":" + port)).
 		Msg("HTTP Application error")
 }
