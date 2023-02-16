@@ -6,18 +6,18 @@ import (
 	"github.com/rs/zerolog/log"
 )
 
-func NewConsensusCommand() Command {
+func NewQuorumCommand() Command {
 	return &commandImpl{
-		shortName:   "/consensus",
-		description: "Set consensus",
+		shortName:   "/quorum",
+		description: "Set quorum",
 		condition:   botIsEnabled,
-		onStart:     setConsensusStart,
-		onContinue:  setConsensusContinue,
+		onStart:     setQuorumStart,
+		onContinue:  setQuorumContinue,
 	}
 }
 
-func setConsensusContinue(pingers *BotPingers, pinger *BotPinger, message *tgbotapi.Message) {
-	err := pinger.SetConsensus(message.Text)
+func setQuorumContinue(pingers *BotPingers, pinger *BotPinger, message *tgbotapi.Message) {
+	err := pinger.SetQuorum(message.Text)
 	if err != nil {
 		pingers.sendMessage(
 			pinger.chatId,
@@ -28,7 +28,7 @@ func setConsensusContinue(pingers *BotPingers, pinger *BotPinger, message *tgbot
 	setCurrentCommand(pingers, pinger, message)
 }
 
-func setConsensusStart(pingers *BotPingers, pinger *BotPinger, message *tgbotapi.Message) {
+func setQuorumStart(pingers *BotPingers, pinger *BotPinger, message *tgbotapi.Message) {
 	_, err := pingers.botApi.Send(
 		tgbotapi.MessageConfig{
 			BaseChat: tgbotapi.BaseChat{
@@ -40,7 +40,7 @@ func setConsensusStart(pingers *BotPingers, pinger *BotPinger, message *tgbotapi
 					},
 				),
 			},
-			Text: "Set Consensus",
+			Text: "Set Quorum",
 		})
 
 	if err != nil {

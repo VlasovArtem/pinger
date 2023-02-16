@@ -18,7 +18,7 @@ func (SimplePingers) Init(router *mux.Router) {
 	//
 	//subrouter.Path("/add/ip").HandlerFunc(p.AddIp(false)).Methods("POST")
 	//subrouter.Path("/add/ip/trusted").HandlerFunc(p.AddIp(true)).Methods("POST")
-	//subrouter.Path("/consensus/{consensus}").HandlerFunc(p.SetConsensus()).Methods("PATCH")
+	//subrouter.Path("/consensus/{consensus}").HandlerFunc(p.SetQuorum()).Methods("PATCH")
 	//subrouter.Path("/reset").HandlerFunc(p.Reset()).Methods("PATCH")
 	//subrouter.Path("/timeout").HandlerFunc(p.SetTimeout()).Methods("PATCH")
 	//subrouter.Path("/start").HandlerFunc(p.Start()).Methods("POST")
@@ -37,9 +37,9 @@ func (SimplePingers) Init(router *mux.Router) {
 //	}
 //}
 //
-//func (p *PingerApi) SetConsensus() http.HandlerFunc {
+//func (p *PingerApi) SetQuorum() http.HandlerFunc {
 //	return func(writer http.ResponseWriter, request *http.Request) {
-//		if err := p.pinger.SetConsensus(mux.Vars(request)["consensus"]); err != nil {
+//		if err := p.pinger.SetQuorum(mux.Vars(request)["consensus"]); err != nil {
 //			http.Error(writer, err.Error(), http.StatusBadRequest)
 //		} else {
 //			writer.WriteHeader(http.StatusOK)

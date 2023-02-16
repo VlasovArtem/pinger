@@ -5,6 +5,7 @@ import (
 	"github.com/VlasovArtem/pinger/src/bot"
 	"github.com/VlasovArtem/pinger/src/config"
 	"github.com/VlasovArtem/pinger/src/handler"
+	"github.com/VlasovArtem/pinger/src/helper"
 	"github.com/VlasovArtem/pinger/src/pinger"
 	"github.com/VlasovArtem/pinger/src/pinger/bot/static"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -220,22 +221,17 @@ func toChatDetails(chatId int64, pinger *static.BotStaticPinger) handler.GetChat
 
 func toPingerConfigResponse(currentConfig config.PingerConfig) handler.PingerConfigResponse {
 	return handler.PingerConfigResponse{
-		Ips:       currentConfig.Ips,
-		Consensus: string(currentConfig.Consensus),
-		Timeout:   currentConfig.Timeout.String(),
+		Ips:     currentConfig.Ips,
+		Quorum:  string(currentConfig.Quorum),
+		Timeout: currentConfig.Timeout.String(),
 	}
 }
 
 func toPingerStateResponse(state pinger.PingerState) handler.PingerStateResponse {
-	var pings []handler.PingInfoResponse
-
-	for _, ping := range state.Pings {
-		pings = append(pings, toPingInfoResponse(ping))
-	}
-
 	return handler.PingerStateResponse{
-		IsRunning: state.IsRunning,
-		Pings:     pings,
+		IsRunning:         state.IsRunning,
+		PingHistory:       helper.SliceConverter(state.PingsHistory, toPingInfoResponse),
+		PingChangeHistory: helper.SliceConverter(state.PingChangeHistory, toPingInfoResponse),
 	}
 }
 
@@ -249,8 +245,8 @@ func toPingInfoResponse(info pinger.PingInfo) handler.PingInfoResponse {
 
 func toPingerConfig(configRequest handler.PingerConfigRequest) *config.PingerConfig {
 	pingerConfig := config.PingerConfig{
-		Ips:       configRequest.Ips,
-		Consensus: config.Consensus(configRequest.Consensus),
+		Ips:    configRequest.Ips,
+		Quorum: config.Quorum(configRequest.Quorum),
 	}
 	pingerConfig.SetTimeout(configRequest.Timeout.Value, config.TimeoutType(configRequest.Timeout.Type))
 	log.Debug().Msgf("Converted config request to config [%v]", pingerConfig)
@@ -258,7 +254,7 @@ func toPingerConfig(configRequest handler.PingerConfigRequest) *config.PingerCon
 }
 
 func format(configRequest handler.PingerConfigRequest) handler.PingerConfigRequest {
-	configRequest.Consensus = strings.ToLower(configRequest.Consensus)
+	configRequest.Quorum = strings.ToLower(configRequest.Quorum)
 	configRequest.Timeout.Type = strings.ToLower(configRequest.Timeout.Type)
 	log.Debug().Msgf("Formatted config request [%v]", configRequest)
 	return configRequest
@@ -268,9 +264,9 @@ func validate(configRequest handler.PingerConfigRequest) error {
 	if configRequest.Timeout.Value <= 0 {
 		return errors.New("Timeout value must be positive")
 	}
-	consensus := config.Consensus(configRequest.Consensus)
+	consensus := config.Quorum(configRequest.Quorum)
 	if consensus != config.ALL && consensus != config.ANY {
-		return errors.New("Consensus must be 'all' or 'any'")
+		return errors.New("Quorum must be 'all' or 'any'")
 	}
 	timeoutType := config.TimeoutType(configRequest.Timeout.Type)
 	if timeoutType != config.SECONDS && timeoutType != config.MINUTES {
@@ -285,12 +281,13 @@ func validate(configRequest handler.PingerConfigRequest) error {
 func sendWelcomeMessage(telegramBot *bot.ChatTelegramBot, chatId int64, pingerConfig *config.PingerConfig, pinger *static.BotStaticPinger) error {
 	log.Debug().Msg("Sending welcome message")
 	msgTpl := `The chat added to Pinger Service app.
-				Additional information:
-				ChatId: %d
-				Ips: [%s],
-				Consensus: %s,
-				Timeout: %s
-				Status: %s`
+
+Additional information:
+ChatId: @bold@%d@bold@
+Ips: [%s],
+Quorum: %s,
+Timeout: %s
+Status: %s`
 	var status string
 	if pinger.CurrentState().IsRunning {
 		status = "Running"
@@ -300,13 +297,13 @@ func sendWelcomeMessage(telegramBot *bot.ChatTelegramBot, chatId int64, pingerCo
 	message := fmt.Sprintf(msgTpl,
 		chatId,
 		strings.Join(pingerConfig.Ips, ", "),
-		pingerConfig.Consensus,
+		pingerConfig.Quorum,
 		pingerConfig.Timeout,
 		status,
 	)
 	_, err := telegramBot.SendMessage(message)
 	if err != nil {
-		return errors.New("Error while sending welcome message")
+		return errors.Wrap(err, "Error while sending welcome message")
 	}
 	return nil
 }

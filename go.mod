@@ -12,6 +12,7 @@ require (
 	github.com/prometheus-community/pro-bing v0.1.0
 	github.com/rs/zerolog v1.28.0
 	github.com/stretchr/testify v1.8.1
+	golang.org/x/exp v0.0.0-20230213192124-5e25df0256eb
 	gopkg.in/natefinch/lumberjack.v2 v2.2.1
 	gopkg.in/yaml.v3 v3.0.1
 )

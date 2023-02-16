@@ -69,7 +69,7 @@ package pinger
 //func (p *PingerTestSuite) TestPinger_SetConsensus_WithValidConsensus() {
 //	type consensus struct {
 //		income   string
-//		expected config.Consensus
+//		expected config.Quorum
 //	}
 //
 //	tests := []consensus{
@@ -95,10 +95,10 @@ package pinger
 //	defer pinger.Stop()
 //
 //	for _, test := range tests {
-//		err := pinger.SetConsensus(test.income)
+//		err := pinger.SetQuorum(test.income)
 //
 //		assert.Nil(p.T(), err)
-//		assert.Equal(p.T(), test.expected, pinger.currentConfig.Consensus)
+//		assert.Equal(p.T(), test.expected, pinger.currentConfig.Quorum)
 //	}
 //}
 //
@@ -106,7 +106,7 @@ package pinger
 //	pinger, _, _ := createPinger()
 //	defer pinger.Stop()
 //
-//	err := pinger.SetConsensus("invalid")
+//	err := pinger.SetQuorum("invalid")
 //
 //	assert.ErrorContains(p.T(), err, "consensus is not valid. Should be 'ALL' or ANY")
 //}
@@ -276,7 +276,7 @@ package pinger
 //	pinger, processorMock, pingProviderMock := createPinger()
 //	defer pinger.Stop()
 //
-//	pinger.currentConfig.SetConsensus(config.ANY)
+//	pinger.currentConfig.SetQuorum(config.ANY)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -318,7 +318,7 @@ package pinger
 //	pinger, processorMock, pingProviderMock := createPinger()
 //	defer pinger.Stop()
 //
-//	pinger.currentConfig.SetConsensus(config.ANY)
+//	pinger.currentConfig.SetQuorum(config.ANY)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -359,7 +359,7 @@ package pinger
 //
 //	pinger.lastPingResult = helper.Ptr(true)
 //
-//	pinger.currentConfig.SetConsensus(config.ANY)
+//	pinger.currentConfig.SetQuorum(config.ANY)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -400,7 +400,7 @@ package pinger
 //
 //	pinger.lastPingResult = helper.Ptr(false)
 //
-//	pinger.currentConfig.SetConsensus(config.ANY)
+//	pinger.currentConfig.SetQuorum(config.ANY)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -441,7 +441,7 @@ package pinger
 //
 //	pinger.lastPingResult = helper.Ptr(true)
 //
-//	pinger.currentConfig.SetConsensus(config.ANY)
+//	pinger.currentConfig.SetQuorum(config.ANY)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -483,7 +483,7 @@ package pinger
 //
 //	pinger.lastPingResult = helper.Ptr(true)
 //
-//	pinger.currentConfig.SetConsensus(config.ANY)
+//	pinger.currentConfig.SetQuorum(config.ANY)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -524,7 +524,7 @@ package pinger
 //	pinger, processorMock, pingProviderMock := createPinger()
 //	defer pinger.Stop()
 //
-//	pinger.currentConfig.SetConsensus(config.ALL)
+//	pinger.currentConfig.SetQuorum(config.ALL)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -560,7 +560,7 @@ package pinger
 //	pinger, processorMock, pingProviderMock := createPinger()
 //	defer pinger.Stop()
 //
-//	pinger.currentConfig.SetConsensus(config.ALL)
+//	pinger.currentConfig.SetQuorum(config.ALL)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -595,7 +595,7 @@ package pinger
 //	pinger, processorMock, pingProviderMock := createPinger()
 //	defer pinger.Stop()
 //
-//	pinger.currentConfig.SetConsensus(config.ALL)
+//	pinger.currentConfig.SetQuorum(config.ALL)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -634,7 +634,7 @@ package pinger
 //
 //	pinger.lastPingResult = helper.Ptr(true)
 //
-//	pinger.currentConfig.SetConsensus(config.ALL)
+//	pinger.currentConfig.SetQuorum(config.ALL)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -676,7 +676,7 @@ package pinger
 //
 //	pinger.lastPingResult = helper.Ptr(false)
 //
-//	pinger.currentConfig.SetConsensus(config.ALL)
+//	pinger.currentConfig.SetQuorum(config.ALL)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -718,7 +718,7 @@ package pinger
 //
 //	pinger.lastPingResult = helper.Ptr(true)
 //
-//	pinger.currentConfig.SetConsensus(config.ALL)
+//	pinger.currentConfig.SetQuorum(config.ALL)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //
@@ -761,7 +761,7 @@ package pinger
 //
 //	pinger.lastPingResult = helper.Ptr(false)
 //
-//	pinger.currentConfig.SetConsensus(config.ALL)
+//	pinger.currentConfig.SetQuorum(config.ALL)
 //	pinger.currentConfig.AddIp("192.168.1.1")
 //	pinger.currentConfig.AddIp("192.168.1.2")
 //

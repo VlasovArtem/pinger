@@ -25,11 +25,12 @@ func showSettings(pingers *BotPingers, pinger *BotPinger, message *tgbotapi.Mess
 
 func (p *BotPinger) printSettings() string {
 	config := p.GetCurrentConfig()
+	p.CurrentState()
 	return fmt.Sprintf("Current settings:\n"+
 		"Timeout: %d seconds\n"+
-		"Consensus: %s\n"+
+		"Quorum: %s\n"+
 		"Ips: %s\n",
 		config.Timeout/time.Second,
-		config.Consensus,
+		config.Quorum,
 		strings.Join(config.Ips, ", "))
 }

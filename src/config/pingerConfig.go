@@ -4,11 +4,11 @@ import (
 	"time"
 )
 
-type Consensus string
+type Quorum string
 
 const (
-	ALL Consensus = "all"
-	ANY Consensus = "any"
+	ALL Quorum = "all"
+	ANY Quorum = "any"
 )
 
 type TimeoutType string
@@ -19,16 +19,16 @@ const (
 )
 
 type PingerConfig struct {
-	Ips       []string
-	Consensus Consensus
-	Timeout   time.Duration
+	Ips     []string
+	Quorum  Quorum
+	Timeout time.Duration
 }
 
-func NewConfig(consensus Consensus, timeout time.Duration) *PingerConfig {
+func NewConfig(consensus Quorum, timeout time.Duration) *PingerConfig {
 	return &PingerConfig{
-		Ips:       []string{},
-		Consensus: consensus,
-		Timeout:   timeout,
+		Ips:     []string{},
+		Quorum:  consensus,
+		Timeout: timeout,
 	}
 }
 
@@ -36,8 +36,8 @@ func (c *PingerConfig) AddIp(ip string) {
 	c.Ips = append(c.Ips, ip)
 }
 
-func (c *PingerConfig) SetConsensus(consensus Consensus) {
-	c.Consensus = consensus
+func (c *PingerConfig) SetQuorum(quorum Quorum) {
+	c.Quorum = quorum
 }
 
 func (c *PingerConfig) SetTimeout(timeout int64, timeoutType TimeoutType) {
@@ -58,9 +58,9 @@ func (c *PingerConfig) Reset() {
 }
 
 func (c *PingerConfig) IsAll() bool {
-	return ALL == c.Consensus
+	return ALL == c.Quorum
 }
 
 func (c *PingerConfig) IsAny() bool {
-	return ANY == c.Consensus
+	return ANY == c.Quorum
 }

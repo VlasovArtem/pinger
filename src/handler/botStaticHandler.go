@@ -11,9 +11,9 @@ type AddChatRequest struct {
 }
 
 type PingerConfigRequest struct {
-	Ips       []string `json:"ips" binding:"required,len=1"`
-	Consensus string   `json:"consensus" binding:"required,oneof=all any"`
-	Timeout   struct {
+	Ips     []string `json:"ips" binding:"required,len=1"`
+	Quorum  string   `json:"quorum" binding:"required,oneof=all any"`
+	Timeout struct {
 		Value int64  `json:"value" binding:"required,gte=1"`
 		Type  string `json:"type" binding:"required,oneof=seconds minutes"`
 	} `json:"timeout" binding:"required"`
@@ -31,8 +31,9 @@ type GetChatDetailsResponse struct {
 }
 
 type PingerStateResponse struct {
-	IsRunning bool
-	Pings     []PingInfoResponse
+	IsRunning         bool
+	PingHistory       []PingInfoResponse
+	PingChangeHistory []PingInfoResponse
 }
 
 type PingInfoResponse struct {
@@ -42,9 +43,9 @@ type PingInfoResponse struct {
 }
 
 type PingerConfigResponse struct {
-	Ips       []string `json:"ips"`
-	Consensus string   `json:"consensus"`
-	Timeout   string   `json:"timeout"`
+	Ips     []string `json:"ips"`
+	Quorum  string   `json:"quorum"`
+	Timeout string   `json:"timeout"`
 }
 
 type UpdateChatRequest struct {

@@ -11,16 +11,23 @@ import (
 )
 
 type PingerState struct {
-	IsRunning bool
-	Pings     []PingInfo
+	IsRunning         bool
+	PingsHistory      []PingInfo
+	PingChangeHistory []PingInfo
+}
+
+func (p PingerState) String() string {
+	//TODO implement me
+	panic("implement me")
 }
 
 type Pinger struct {
-	currentConfig *config.PingerConfig
-	processor     Processor
-	starter       Executor
-	pingProvider  PingProvider
-	pings         []PingInfo
+	currentConfig     *config.PingerConfig
+	processor         Processor
+	starter           Executor
+	pingProvider      PingProvider
+	pingChangeHistory []PingInfo
+	pingHistory       []PingInfo
 }
 
 func NewPinger(processor Processor, provider PingProvider) *Pinger {
@@ -29,11 +36,12 @@ func NewPinger(processor Processor, provider PingProvider) *Pinger {
 
 func NewPingerWithConfig(currentConfig *config.PingerConfig, processor Processor, provider PingProvider) *Pinger {
 	return &Pinger{
-		currentConfig: currentConfig,
-		processor:     processor,
-		pingProvider:  provider,
-		starter:       NewStarter(),
-		pings:         []PingInfo{},
+		currentConfig:     currentConfig,
+		processor:         processor,
+		pingProvider:      provider,
+		starter:           NewStarter(),
+		pingChangeHistory: []PingInfo{},
+		pingHistory:       []PingInfo{},
 	}
 }
 
@@ -70,12 +78,12 @@ func validateIp(ip string) error {
 	return nil
 }
 
-func (p *Pinger) SetConsensus(cons string) error {
-	consensus := config.Consensus(strings.ToLower(cons))
-	if config.ALL != consensus && config.ANY != consensus {
-		return errors.New("consensus is not valid. Should be 'ALL' or ANY")
+func (p *Pinger) SetQuorum(cons string) error {
+	quorum := config.Quorum(strings.ToLower(cons))
+	if config.ALL != quorum && config.ANY != quorum {
+		return errors.New("quorum is not valid. Should be 'ALL' or 'ANY'")
 	}
-	p.currentConfig.SetConsensus(consensus)
+	p.currentConfig.SetQuorum(quorum)
 	return nil
 }
 
@@ -171,21 +179,22 @@ func (p *Pinger) runPing(runConfig config.PingerConfig) bool {
 }
 
 func (p *Pinger) runResult(info PingInfo) {
-	if len(p.pings) == 0 {
+	if len(p.pingChangeHistory) == 0 {
 		p.runProcessor(nil, info)
 	} else {
-		lastPing := p.pings[len(p.pings)-1]
-		if lastPing.Result != info.Result {
-			p.runProcessor(&lastPing, info)
+		lastChangePing := p.pingChangeHistory[len(p.pingChangeHistory)-1]
+		if lastChangePing.Result != info.Result {
+			p.runProcessor(&lastChangePing, info)
+			p.pingChangeHistory = append(p.pingChangeHistory, info)
 		} else if p.processor.GetTrigger() == CONSTANTLY {
-			p.runProcessor(&lastPing, info)
+			p.runProcessor(&lastChangePing, info)
 		}
 	}
 
-	if len(p.pings) == 10 {
-		p.pings = p.pings[1:]
+	if len(p.pingHistory) == 10 {
+		p.pingHistory = p.pingHistory[1:]
 	}
-	p.pings = append(p.pings, info)
+	p.pingHistory = append(p.pingHistory, info)
 }
 
 func (p *Pinger) Stop() {
@@ -202,7 +211,8 @@ func (p *Pinger) runProcessor(previousResult *PingInfo, currentResult PingInfo) 
 
 func (p *Pinger) CurrentState() PingerState {
 	return PingerState{
-		IsRunning: p.starter.Status(),
-		Pings:     p.pings,
+		IsRunning:         p.starter.Status(),
+		PingsHistory:      p.pingHistory,
+		PingChangeHistory: p.pingChangeHistory,
 	}
 }

@@ -19,7 +19,7 @@ func NewStatusCommand() Command {
 func showStatus(pingers *BotPingers, pinger *BotPinger, message *tgbotapi.Message) {
 	pingers.sendMessage(
 		pinger.chatId,
-		formatStatusMessage(pinger.CurrentStatus()),
+		formatStatusMessage(pinger.CurrentState()),
 	)
 }
 
@@ -27,8 +27,8 @@ func formatStatusMessage(status pinger.PingerState) string {
 	return fmt.Sprintf(
 		"Bot status: %s\nLight status: %s\nTime has passed: %s",
 		formatBotStatus(status.IsRunning),
-		formatLightStatus(status.Pings),
-		formatPassedTime(status.Pings),
+		formatLightStatus(status.PingsHistory),
+		formatPassedTime(status.PingsHistory),
 	)
 }
 
