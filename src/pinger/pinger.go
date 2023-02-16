@@ -181,6 +181,7 @@ func (p *Pinger) runPing(runConfig config.PingerConfig) bool {
 func (p *Pinger) runResult(info PingInfo) {
 	if len(p.pingChangeHistory) == 0 {
 		p.runProcessor(nil, info)
+		p.pingChangeHistory = append(p.pingChangeHistory, info)
 	} else {
 		lastChangePing := p.pingChangeHistory[len(p.pingChangeHistory)-1]
 		if lastChangePing.Result != info.Result {
