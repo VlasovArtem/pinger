@@ -2,8 +2,8 @@
 Description=Bot Pinger Static
 
 [Service]
-WorkingDirectory=/home/ec2-user/pingerd
-ExecStart=sudo /usr/local/bin/pinger --app.type=bot.static --bot.static.file=/home/ec2-user/bot-static.yml --logger.file=/var/log/pinger.log --logger.level=info --api.port=3031
+User=root
+ExecStart=/usr/local/bin/pinger --type=bot.static --bot.static.file=/home/ec2-user/bot-static.yml --logger.file=/var/log/pinger.log --logger.level=info --api.port=3031
 Restart=always
 
 [Install]
